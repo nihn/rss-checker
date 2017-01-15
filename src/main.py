@@ -67,11 +67,14 @@ def parse_feed_xm(xml_string):
     return results
 
 
-def find(results, patterns):
+def find(results, patterns, from_date):
     matches = defaultdict(list)
     patterns = [re.compile(pattern) for pattern in patterns]
 
     for link, details in results.items():
+        if dateparser.parse(details['published']) < from_date:
+            continue
+
         for pattern in patterns:
             if any(pattern.search(cat, re.IGNORECASE)
                    for cat in details['categories'] + [details['title']]):
@@ -110,9 +113,9 @@ def send_results(results, address):
     s.quit()
 
 
-def check_feed(site, patterns):
+def check_feed(site, patterns, from_date):
     res = get(site)
-    return find(res, patterns)
+    return find(res, patterns, from_date)
 
 
 @command()
@@ -123,17 +126,19 @@ def check_feed(site, patterns):
 @option('--from-date', help='From what time you want events',
         default='1 day ago')
 @option('-i', '--interval', type=IntRange(min=0))
-def check(site, patterns, email, interval, from_date):
+@option('--quite', is_flag=True)
+def check(site, patterns, email, interval, from_date, quite):
     if type(from_date) is str:
         from_date = dateparser.parse(from_date)
 
     logger.info('Checking feed starting from %s', from_date)
-    found = check_feed(site, patterns)
+    found = check_feed(site, patterns, from_date)
 
     if email:
         send_results(found, email)
 
-    print_results(found)
+    if not quite:
+        print_results(found)
 
     if interval:
         sleep(interval)

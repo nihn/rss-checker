@@ -1,13 +1,16 @@
 import logging
 import re
+import smtplib
 
 from collections import defaultdict
+from email.mime.text import MIMEText
 from urllib.parse import urlparse
 from sys import exit
 from xml.etree import ElementTree as ET
 
 from click import command, option, argument, echo
 import requests
+from subprocess import Popen, PIPE
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('requests').setLevel(logging.ERROR)
@@ -83,13 +86,39 @@ def print_results(results):
         echo('\n')
 
 
+def send_results(results, address):
+    msg = []
+
+    for pattern, found in results.items():
+        msg.append('<h3>For "%s" pattern:<\h3>' % pattern)
+        for title, published, link in found:
+            msg.append('\t* [%s] <a href=%s>%s</a>' % (published, link, title))
+
+    msg = MIMEText('\n'.join(msg))
+    msg['Subject'] = 'Notification from rss_checker'
+    msg['From'] = 'rss_checker@mac'
+    msg['To'] = address
+
+    try:
+        s = smtplib.SMTP('localhost')
+    except ConnectionRefusedError:
+        fail('Cannot connect to local smtp server, is it running?')
+    s.send_message(msg)
+    s.quit()
+
+
 @command()
 @argument('site')
 @option('-p', '--pattern', 'patterns', multiple=True, required=True,
         help='Pattern which should be searched, case is ignored')
-def check(site, patterns):
+@option('--email', help='Address to which results should be sent')
+def check(site, patterns, email):
     res = get(site)
     found = find(res, patterns)
+
+    if email:
+        send_results(found, email)
+
     print_results(found)
 
 

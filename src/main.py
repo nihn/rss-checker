@@ -3,7 +3,7 @@ import re
 import smtplib
 
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime
 from email.mime.text import MIMEText
 from urllib.parse import urlparse
 from sys import exit
@@ -128,6 +128,8 @@ def check_feed(site, patterns, from_date):
 @option('-i', '--interval', type=IntRange(min=0))
 @option('--quite', is_flag=True)
 def check(site, patterns, email, interval, from_date, quite):
+    start = datetime.now()
+
     if type(from_date) is str:
         from_date = dateparser.parse(from_date)
 
@@ -142,8 +144,7 @@ def check(site, patterns, email, interval, from_date, quite):
 
     if interval:
         sleep(interval)
-        check.callback(site, patterns, email, interval,
-                       from_date + timedelta(seconds=interval))
+        check.callback(site, patterns, email, interval, start, quite)
 
 
 if __name__ == '__main__':

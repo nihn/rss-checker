@@ -102,7 +102,7 @@ def send_results(results, address):
 
     msg = MIMEText('\n'.join(msg))
     msg['Subject'] = 'Notification from rss_checker'
-    msg['From'] = 'rss_checker@mac'
+    msg['From'] = 'rss_checker'
     msg['To'] = address
 
     try:
@@ -125,8 +125,10 @@ def check_feed(site, patterns, from_date):
 @option('--email', help='Address to which results should be sent')
 @option('--from-date', help='From what time you want events',
         default='1 day ago')
-@option('-i', '--interval', type=IntRange(min=0))
-@option('--quite', is_flag=True)
+@option('-i', '--interval', type=IntRange(min=0),
+        help='When set script will relaunch every x seconds and will fetch '
+             'results from previous run to present.')
+@option('--quite', is_flag=True, help='Do not print results to console')
 def check(site, patterns, email, interval, from_date, quite):
     start = datetime.now()
 

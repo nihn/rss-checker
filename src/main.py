@@ -1,9 +1,14 @@
+import logging
+import re
+
 from collections import defaultdict
 from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
-import re
 
+from click import command, option, argument, echo
 import requests
+
+logging.basicConfig(level=logging.INFO)
 
 
 def parse_item(item):
@@ -16,9 +21,14 @@ def parse_item(item):
 
 def get(address):
     parsed = urlparse(address)
-    scheme = parsed.scheme or 'http'
-    path = parsed.path or 'feed'
-    res = requests.get('%s://%s/%s' % (scheme, parsed.hostname, path), timeout=5)
+
+    if not parsed.scheme:
+        address = 'http://' + address
+
+    if not parsed.path:
+        address += '/feed'
+
+    res = requests.get(address, timeout=5)
 
     channel = ET.fromstring(res.content).find('channel')
     results = {}
@@ -42,10 +52,23 @@ def find(results, patterns):
     return matches
 
 
-res = get('http://fly4free.pl')
-found = find(res, [r'wroclaw\w*', 'katowic\w*', 'warszaw\w+'])
+def print_results(results):
+    for pattern, found in results.items():
+        echo('%s:' % pattern)
+        for title, link in found:
+            echo('\t* %s: %s' % (title, link))
+        echo('\n')
 
-for p, f in found.items():
-    print('%s:' % p)
-    for title, link in f:
-        print('\t* %s: %s' % (title, link))
+
+@command()
+@argument('site')
+@option('-p', '--pattern', 'patterns', multiple=True, required=True,
+        help='Pattern which should be searched, case is ignored')
+def check(site, patterns):
+    res = get(site)
+    found = find(res, patterns)
+    print_results(found)
+
+
+if __name__ == '__main__':
+    check()

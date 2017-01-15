@@ -3,14 +3,17 @@ import re
 import smtplib
 
 from collections import defaultdict
+from datetime import timedelta
 from email.mime.text import MIMEText
 from urllib.parse import urlparse
 from sys import exit
+from time import sleep
 from xml.etree import ElementTree as ET
 
 from click import command, option, argument, echo
+from click.types import IntRange
+import dateparser
 import requests
-from subprocess import Popen, PIPE
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('requests').setLevel(logging.ERROR)
@@ -107,19 +110,35 @@ def send_results(results, address):
     s.quit()
 
 
+def check_feed(site, patterns):
+    res = get(site)
+    return find(res, patterns)
+
+
 @command()
 @argument('site')
 @option('-p', '--pattern', 'patterns', multiple=True, required=True,
         help='Pattern which should be searched, case is ignored')
 @option('--email', help='Address to which results should be sent')
-def check(site, patterns, email):
-    res = get(site)
-    found = find(res, patterns)
+@option('--from-date', help='From what time you want events',
+        default='1 day ago')
+@option('-i', '--interval', type=IntRange(min=0))
+def check(site, patterns, email, interval, from_date):
+    if type(from_date) is str:
+        from_date = dateparser.parse(from_date)
+
+    logger.info('Checking feed starting from %s', from_date)
+    found = check_feed(site, patterns)
 
     if email:
         send_results(found, email)
 
     print_results(found)
+
+    if interval:
+        sleep(interval)
+        check.callback(site, patterns, email, interval,
+                       from_date + timedelta(seconds=interval))
 
 
 if __name__ == '__main__':

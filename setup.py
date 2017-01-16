@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='rss-checker',
-    version='0.0.1',
+    version='0.0.2',
     author='Matusz Moneta',
     author_email='mateuszmoneta@gmail.com',
     install_requires=[

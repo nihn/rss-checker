@@ -93,17 +93,22 @@ def print_results(results):
 
 
 def send_results(results, address):
-    msg = []
+    msg = ['<html><body>']
 
     for pattern, found in results.items():
-        msg.append('<h3>For "%s" pattern:<\h3>' % pattern)
+        msg.append('<h3>For "%s" pattern:</h3>\n<p>' % pattern)
         for title, published, link in found:
             msg.append('\t* [%s] <a href=%s>%s</a>' % (published, link, title))
+        msg.append('</p>')
 
-    msg = MIMEText('\n'.join(msg))
+    msg.append('</body></html>')
+
+    msg = MIMEText('\n'.join(msg), 'html')
     msg['Subject'] = 'Notification from rss_checker'
-    msg['From'] = 'rss_checker'
+    msg['From'] = 'rss_checker@localhost'
     msg['To'] = address
+
+    logger.info('Sending e-mail to %s', address)
 
     try:
         s = smtplib.SMTP('localhost')

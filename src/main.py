@@ -96,10 +96,9 @@ def send_results(results, address):
     msg = ['<html><body>']
 
     for pattern, found in results.items():
-        msg.append('<h3>For "%s" pattern:</h3>\n<p>' % pattern)
+        msg.append('<h3>For "%s" pattern:</h3>\n' % pattern)
         for title, published, link in found:
-            msg.append('\t* [%s] <a href=%s>%s</a>' % (published, link, title))
-        msg.append('</p>')
+            msg.append('<p>\t* [%s] <a href=%s>%s</a></p>' % (published, link, title))
 
     msg.append('</body></html>')
 

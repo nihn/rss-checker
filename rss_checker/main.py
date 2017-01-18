@@ -164,11 +164,13 @@ def check(site, patterns, email, interval, from_date, quite):
     logger.info('Checking feed starting from %s', from_date)
     found = check_feed(site, patterns, from_date)
 
-    if found and email:
-        send_results(found, email)
-
-    if not quite:
-        print_results(found)
+    if found:
+        if email:
+            send_results(found, email)
+        if not quite:
+            print_results(found)
+    else:
+        logger.info('Nothing found')
 
     if interval:
         sleep(interval)

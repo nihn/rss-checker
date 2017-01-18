@@ -3,17 +3,20 @@ import re
 import smtplib
 
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from email.mime.text import MIMEText
+from functools import partial
 from urllib.parse import urlparse
 from sys import exit
 from time import sleep
 from xml.etree import ElementTree as ET
 
 from click import command, option, argument, echo
-from click.types import IntRange
+from click.types import IntRange, File
 import dateparser
 import requests
+import yaml
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('requests').setLevel(logging.ERROR)
@@ -152,6 +155,30 @@ def check(site, patterns, email, interval, from_date, quite):
         sleep(interval)
         check.callback(site, patterns, email, interval, start, quite)
 
+
+@command()
+@option('-c', '--config', type=File())
+def checkd(config):
+    config = yaml.load(config)
+
+    hosts = config.get('hosts')
+    interval = config.get('interval', 60)
+
+    if hosts is None:
+        fail('At least on host need to be specified')
+
+    email = config.get('receiver')
+
+    if email is None:
+        fail('At least one receiver need to be specified')
+
+    function = partial(check.callback, email=email, interval=interval,
+                       from_date='%s seconds ago' % interval, quite=False)
+
+    with ThreadPoolExecutor(max_workers=len(hosts)) as executor:
+        res = executor.map(function, hosts.keys(), hosts.values())
+
+    ' '.join(res)
 
 if __name__ == '__main__':
     check()

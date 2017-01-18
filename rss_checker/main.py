@@ -21,6 +21,7 @@ import yaml
 logging.basicConfig(level=logging.INFO)
 logging.getLogger('requests').setLevel(logging.ERROR)
 logger = logging.getLogger(__name__)
+SMTP = None
 
 
 def fail(msg, *args):
@@ -112,10 +113,7 @@ def send_results(results, address):
 
     logger.info('Sending e-mail to %s', address)
 
-    try:
-        s = smtplib.SMTP('localhost')
-    except ConnectionRefusedError:
-        fail('Cannot connect to local smtp server, is it running?')
+    s = setup_smtp()
     s.send_message(msg)
     s.quit()
 
@@ -123,6 +121,27 @@ def send_results(results, address):
 def check_feed(site, patterns, from_date):
     res = get(site)
     return find(res, patterns, from_date)
+
+
+def setup_smtp(smtp_config=None):
+    global SMTP
+    smtp_config = smtp_config or {}
+
+    if SMTP is not None:
+        return
+
+    try:
+        SMTP = smtplib.SMTP(smtp_config.get('host', 'localhost'),
+                            smtp_config.get('port', 23))
+    except ConnectionRefusedError:
+        fail('Cannot connect to local smtp server, is it running?')
+
+    SMTP.starttls()
+
+    if 'user' in smtp_config:
+        SMTP.login(smtp_config['user'], smtp_config['password'])
+
+    return SMTP
 
 
 @command()
@@ -163,6 +182,8 @@ def checkd(config):
 
     hosts = config.get('hosts')
     interval = config.get('interval', 60)
+
+    setup_smtp(config.get('smtp'))
 
     if hosts is None:
         fail('At least on host need to be specified')

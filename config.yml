@@ -1,0 +1,14 @@
+receiver: aaa@gmail.com
+interval: 30
+
+smtp:
+  host: smtp.gmail.com
+  port: 587
+  user: foo
+  password: bar
+
+hosts:
+  abc.pl:
+    - asd
+  xyz.pl:
+    - foo

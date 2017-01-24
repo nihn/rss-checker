@@ -128,7 +128,7 @@ def setup_smtp(smtp_config=None):
     smtp_config = smtp_config or {}
 
     if SMTP is not None:
-        return
+        return SMTP
 
     try:
         SMTP = smtplib.SMTP(smtp_config.get('host', 'localhost'),

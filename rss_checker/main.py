@@ -49,10 +49,15 @@ def get(address):
         address = 'http://' + address
 
     logger.info('Getting feed from %s...', address)
-    res = requests.get(address, timeout=5)
+    try:
+        res = requests.get(address, timeout=5)
+    except requests.RequestException as e:
+        logger.error('%s when getting feed from server', e.__class__.__name__)
+        return
 
     if res.status_code != 200:
-        fail('Got %d response code from server', res.status_code)
+        logger.error('Got %d response code from server', res.status_code)
+        return
 
     return parse_feed_xm(res.content)
 
@@ -114,13 +119,18 @@ def send_results(results, address):
     logger.info('Sending e-mail to %s', address)
 
     s = setup_smtp()
-    s.send_message(msg)
+    try:
+        s.send_message(msg)
+    except smtplib.SMTPSenderRefused as e:
+        logger.error('Failed to send email, error got from server: %s',
+                     e.smtp_error)
     s.quit()
 
 
 def check_feed(site, patterns, from_date):
     res = get(site)
-    return find(res, patterns, from_date)
+    if res is not None:
+        return find(res, patterns, from_date)
 
 
 def setup_smtp(smtp_config=None):
@@ -169,10 +179,14 @@ def check(site, patterns, email, interval, from_date, quite):
             send_results(found, email)
         if not quite:
             print_results(found)
-    else:
+    elif found is not None:
         logger.info('Nothing found')
 
     if interval:
+        if found is None:
+            logger.info('Retrying due to error in processing')
+            start = from_date
+
         sleep(interval)
         check.callback(site, patterns, email, interval, start, quite)
 
